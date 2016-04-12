@@ -1,4 +1,5 @@
 library('truncnorm')
+source('~/Projects/stateSpaceModel/stateSpaceAuxFunctions.R')
 
 pLatentStates.SS <- function(x, z, yg, bg, sg, tg, connect, wNA, TRUNC){ 
   p.obs  <- dnorm(z, yg, sqrt(tg), log=T)
