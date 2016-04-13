@@ -1,5 +1,5 @@
 library('truncnorm')
-source('~/Projects/stateSpaceModel/stateSpaceAuxFunctions.R')
+source('~/Projects/procVisData/bayesianFunctions.R')
 
 pLatentStates.SS <- function(x, z, yg, bg, sg, tg, connect, wNA, TRUNC){ 
   p.obs  <- dnorm(z, yg, sqrt(tg), log=T)
