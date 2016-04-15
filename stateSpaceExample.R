@@ -1,52 +1,57 @@
-source('stateSpaceAuxFunctions.R')
+
+
 source('stateSpaceModel.R')
+source('stateSpacePlot.R')
+source('~/Projects/procVisData/gibbsSamplingPlot.R')
+
 
 ssSim <- ssSimulations(nSites = 3, #number of sites
                        nTSet = 20, #number of Time steps
-                       p = 3, # number of predictors
-                       sig = .1, # process error
+                       beta = c(1., -.6), #beta coefficients
+                       sig = .2, # process error
                        tau = .01, # observation error
                        plotFlag = T, # whether plot the data or not
-                       TRUNC = T # trunctaed model or not 
+                       miss = .2, #fraction of missing data
+                       TRUNC = F # trunctaed model or not
 )
 
 ssOut <- stateSpace(x = ssSim$x, #predictors
                     z = ssSim$z,#response
                     tauPriorMean = ssSim$tau, 
-                    tauPriorStrength = 100, 
+                    tauPriorStrength = .11, 
                     sigPriorMean = NULL,
                     sigPriorStrength = NULL,
                     connect = ssSim$connect, # connectivity of time data
                     ng = 2000, #number of gibbs sampling
-                    burnin = 500, #numbe of burning
+                    burnin = 1000, #numbe of burning
                     MPstep = .1,  # MetroPolis-Hasting initial step size  
                     nAccept = 30,  # number of steps to check the acceptance rate
+                    storeLatent = T, # whether store latent state or not
                     TRUNC = ssSim$TRUNC # whether trucated or not
 )
 
 
-plot(rowMeans(ssOut$mpSteps), type = 'l')
-plot(rowMeans(ssOut$acceptGibbs), type = 'l')
+# plot(rowMeans(ssOut$mpSteps), type = 'l')
+# plot(rowMeans(ssOut$acceptGibbs), type = 'l')
 
-plot(ssOut$bgibbs[,1]); abline(h=ssSim$beta[1], col='red')
-plot(ssOut$bgibbs[,2]); abline(h=ssSim$beta[2], col='red')
-plot(ssOut$bgibbs[,3]); abline(h=ssSim$beta[3], col='red')
+par(mfrow=c(3,1))
 
-plot(ssOut$sgibbs); abline(h=ssSim$sig, col='red')
-plot(ssOut$tgibbs); abline(h=ssSim$tau, col='red')
+ssGibbs <- data.frame(beta=ssOut$bgibbs,
+                      sigma=ssOut$sgibbs,
+                      tau=ssOut$tgibbs)
 
-summary(ssOut$bgibbs[-(1:ssOut$nBurnin),])
-ssSim$beta
+plotGibbs(outGibbs =  ssGibbs, burnin = ssOut$nBurnin, 
+          trueValues = c(ssSim$beta, ssSim$sig, ssSim$tau),
+          yRange = c(0,15),
+          plots = 'post')
 
-plot(ssSim$y, ssOut$latentMean, 
-     xlab = 'Latent state - observed', 
-     ylab = 'Latent state - predicted')
+stateSpaceTemporalPost(ssSim$x, ssSim$y, 
+                       beta = ssOut$bgibbs,
+                       sigma = ssOut$sgibbs, 
+                       startPoints = ssSim$startPoints, 
+                       nTrends = 100)
+points(ssSim$wNA, ssSim$y[ssSim$wNA], col='blue')
 
-abline(0,1, col='#3366EE')
-
-plot(ssSim$z, colMeans(ssOut$zPredGibbs[-c(1:ssOut$nBurnin),]), 
-     xlab = 'Response - observed', 
-     ylab = 'Response - predicted')
-
-abline(0,1, col='#BB3333')
-
+stateSpacePlot(y=ssSim$y, 
+               yGibbs=  ssOut$latentGibbs, 
+               wMissing= ssSim$wNA )

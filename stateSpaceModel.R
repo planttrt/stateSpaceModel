@@ -1,15 +1,16 @@
 library('truncnorm')
 source('~/Projects/procVisData/bayesianFunctions.R')
+library(rjags)
 
 pLatentStates.SS <- function(x, z, yg, bg, sg, tg, connect, wNA, TRUNC){ 
-  p.obs  <- dnorm(z, yg, sqrt(tg), log=T)
+  p.obs  <- dnorm(z, yg, tg, log=T)
   
   if(TRUNC){
-    p.back <- log(dtruncnorm(yg - yg[connect[,1]], 0, Inf, x[connect[,1],]%*%bg, sqrt(sg)))
-    p.fore <- log(dtruncnorm(yg[connect[,2]] - yg, 0, Inf, x%*%bg, sqrt(sg)))
+    p.back <- log(dtruncnorm(yg - yg[connect[,1]], 0, Inf, x[connect[,1],]%*%bg, sg))
+    p.fore <- log(dtruncnorm(yg[connect[,2]] - yg, 0, Inf, x%*%bg, sg))
   }else{
-    p.back <- dnorm(yg- yg[connect[,1]], x[connect[,1],]%*%bg, sqrt(sg), log=T)
-    p.fore <- dnorm(yg[connect[,2]]- yg, x%*%bg, sqrt(sg), log=T)
+    p.back <- dnorm(yg- yg[connect[,1]], x[connect[,1],]%*%bg, sg, log=T)
+    p.fore <- dnorm(yg[connect[,2]]- yg, x%*%bg, sg, log=T)
   }
   
   p.obs[is.na(p.obs)] <- 0
@@ -46,7 +47,7 @@ stateSpace <- function(x, z, connect,
   }else{
     print(paste0('a prior on tau = ', tauPriorMean))
     t1 <- N*tauPriorStrength
-    t2 <- tauPriorMean*(t1-1)
+    t2 <- (tauPriorMean)^2*(t1-1)
   }
   
   if(is.null(sigPriorMean)|is.null(sigPriorStrength)){
@@ -56,7 +57,7 @@ stateSpace <- function(x, z, connect,
   }else{
     print(paste0('a prior on sigma = ',sigPriorMean))
     s1 <- N*sigPriorStrength
-    s2 <- sigPriorMean*(s1-1)
+    s2 <- (sigPriorMean)^2*(s1-1)
   }
   
   
@@ -93,29 +94,19 @@ stateSpace <- function(x, z, connect,
     xx <- x1
     
     if(TRUNC){
-      #       ff <- yy>.1
-      #       ff <- x1%*%bg>sqrt(tg)
-      #      ff <- x1%*%bg>sqrt(sg)
       ff <- x1%*%bg>0
     }else{
       ff <- rep(T, length(yy))
     }    
     bg <- bUpdateNorm(xx = xx[ff,], yy = yy[ff], 
-                      b = bg, sigma = sg,
+                      b = bg, sigma = sg^2,
                       priorB = priorB, priorIVB = priorIVB)
     
-    sg <- updateVariance(yg2, yg1 + x1%*%bg, s1, s2)
-    tg <- updateVariance(z[-wNA], mu=yg[-wNA], t1, t2)
-    
-    #xxx
-    #     sg <- sigPriorMean
-    #     tg <- tauPriorMean
-    
+    sg <- sqrt(updateVariance(yg2, yg1 + x1%*%bg, s1, s2))
+    tg <- sqrt(updateVariance(z[-wNA], mu=yg[-wNA], t1, t2))
     
     pnow <- pLatentStates.SS(x, z, yg, bg, sg, tg, connect, wNA=wNA, TRUNC = TRUNC)
     
-    #xxx
-    #pyg <- tnorm(N, 0, Inf, yg, MPstep)
     pyg <- rnorm(N, yg, MPstep)
     
     pnew <- pLatentStates.SS(x, z, pyg, bg, sg, tg, connect, wNA=wNA, TRUNC = TRUNC)
@@ -131,8 +122,6 @@ stateSpace <- function(x, z, connect,
     if(g >= burnin){
       yg.mean.old <- yg.mean
       yg.mean <- yg.mean + yg/(ng-burnin)
-      
-      #       yg.var <- yg.var + yg.mean.old^2 - yg.mean^2 + (yg^2 - yg.var -yg.mean.old^2)/(ng-burnin)
     }
     
     bgibbs[g,] <- bg   #save estimates
@@ -147,9 +136,8 @@ stateSpace <- function(x, z, connect,
     }
     
     if(storeLatent) ygibbs[g,] <- yg
-    #yPred <- rnorm(nrow(xx), xx%*%bg ,sqrt(sg))
     
-    zPredGibbs[g,] <- rnorm(length(yg), yg, sqrt(tg))
+    zPredGibbs[g,] <- rnorm(length(yg), yg, tg)
     
     setTxtProgressBar(prog,g)
   }
@@ -165,13 +153,8 @@ stateSpace <- function(x, z, connect,
 
 
 ssSimulations <- function(nSites=1000, nTSet=c(3:6), p=2, beta =NULL,
-                          sig= .1^2, tau=.01^2, miss=0,
+                          sig= .1, tau=.01, miss=0,
                           plotFlag = F, TRUNC = F){
-  #   nSites <- 100
-  #   p <- 2
-  
-  #   sig  <- .1^2
-  #   tau  <- .01^2
   
   nSamples.Site <- sample(nTSet, nSites, replace = T)
   
@@ -197,13 +180,13 @@ ssSimulations <- function(nSites=1000, nTSet=c(3:6), p=2, beta =NULL,
     for(j in 2:nSamples.Site[i])
       #xxx
       if(TRUNC){
-        y[sampleSiteNo[i]+j] <- y[sampleSiteNo[i]+j-1] + tnorm(1, 0,Inf, x[sampleSiteNo[i]+j-1,]%*%beta, sqrt(sig) )
+        y[sampleSiteNo[i]+j] <- y[sampleSiteNo[i]+j-1] + tnorm(1, 0,Inf, x[sampleSiteNo[i]+j-1,]%*%beta, sig )
       }else{
-        y[sampleSiteNo[i]+j] <- y[sampleSiteNo[i]+j-1] + rnorm(1, x[sampleSiteNo[i]+j-1,]%*%beta, sqrt(sig) )
+        y[sampleSiteNo[i]+j] <- y[sampleSiteNo[i]+j-1] + rnorm(1, x[sampleSiteNo[i]+j-1,]%*%beta, sig )
       }
   }
   
-  z <- rnorm(N, y, sqrt(tau))
+  z <- rnorm(N, y, tau)
   
   
   
@@ -232,5 +215,66 @@ ssSimulations <- function(nSites=1000, nTSet=c(3:6), p=2, beta =NULL,
     plot(z)
     lines(z)
   }
-  list(x=x, z=z, y= y, connect=connect, tau = tau, sig=sig, beta=beta, n=nSamples.Site, wNA = wNA, TRUNC=TRUNC)
+  
+  list(x=x, z=z, y= y, connect=connect, 
+       tau = tau, sig=sig, beta=beta, 
+       startPoints = which(is.na(connect[,1])), 
+       n=nSamples.Site, wNA = wNA, TRUNC=TRUNC)
 }
+
+stateSpaceJags <- function(x, z, connect=NULL,
+                           ForeBack =NULL,
+                           nGibbs = 1000, nPost=nGibbs,
+                           TRUNC =F,
+                           n.chains=4, n.adapt=100,
+                           quiet=F
+                           
+){
+  if(!is.null(connect)){
+    Fore <- which(is.na(connect[,1]))
+    Back <- which(is.na(connect[,2]))
+    Both <- which(!rowSums(is.na(connect)))
+  }else if(!is.null(ForeBack)){
+    Fore <- which(ForeBack[,1])
+    Back <- which(ForeBack[,2])
+    Both <- which(!(ForeBack[,1]|ForeBack[,2]))
+  }else
+  {
+    stop('One of connect or ForeBack arguments should be defined.')
+  }
+  
+  model <- ifelse(TRUNC, 
+                  '~/Projects/stateSpaceModel/modelSS.trunc.bugs',
+                  '~/Projects/stateSpaceModel/modelSS.bugs')
+  
+  # model <- ifelse(TRUNC, modelSS.trunc.bugs,modelSS.bugs)
+  
+  ssModel <- jags.model(model, 
+                        quiet = quiet, 
+                        data = list('x' = x,
+                                    'z' = z,
+                                    'N' = nrow(x),
+                                    'p'= ncol(x),
+                                    connectFore=Fore,
+                                    connectBoth=Both,
+                                    connectBack=Back),
+                        n.chains = n.chains,
+                        n.adapt = n.adapt)
+  
+  update(ssModel, nGibbs)
+  
+  ssSamples <- jags.samples(ssModel,c('y','beta', 'sigma', 'sigma2'), nPost )
+  
+  
+  
+  # print(ssSamples)
+  
+  
+  ssGibbs.jags <- data.frame(beta=t(apply(ssSamples$beta, c(1,2), mean)),
+                             sigma=t(apply(ssSamples$sigma, c(1,2), mean)),
+                             tau=t(apply(ssSamples$sigma2, c(1,2), mean)))
+  
+  return(list(model=ssModel, chains=ssGibbs.jags, rawsamples = ssSamples))
+}
+
+
