@@ -45,15 +45,16 @@ stateSpaceTemporalPost <- function(x, y, beta,
 }
 
 
-stateSpacePlot <- function(y, yGibbs, wMissing){
+stateSpacePlot <- function(y, yGibbs, wMissing=NULL, yLim=NULL){
   n <- length(y)
   
   confInterval <- apply(yGibbs, 2, quantile, probs=c(.025,.5,.975))
 
-  cols <- rep('black', length(ssSim$y))
-  cols[ssSim$wNA] <- 'red'
+  cols <- rep('black', length(y))
+  if(!is.null(wMissing))cols[wMissing] <- 'red'
+  if(is.null(yLim)) yLim <- range(confInterval)
   
-  plot(y, col=cols, ylim=range(confInterval))
+  plot(y, col=cols, ylim=yLim)
   lines(confInterval[2,])
   polygon(c(1:n, n:1), c(confInterval[1,], rev(confInterval[3,])), col='#88888888')
   lines(confInterval[1,], col='grey')
