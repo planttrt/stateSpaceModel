@@ -2,6 +2,18 @@ library('truncnorm')
 source('~/Projects/procVisData/bayesianFunctions.R')
 library(rjags)
 
+setConnectBackFore <- function(xyData){
+  xyData.tmp <- xyData
+  xyData.tmp[,ConnectBack:=0:(.N-1)]
+  xyData.tmp[,ConnectFore:=2:(.N+1)]
+  
+  xyData.tmp$ConnectBack[xyData$Head] <- NA
+  xyData.tmp$ConnectFore[xyData$Tail] <- NA
+  xyData.tmp$ConnectBack
+  
+  xyData.tmp
+}
+
 pLatentStates.SS <- function(x, z, yg, bg, sg, tg, connect, wNA, TRUNC){ 
   p.obs  <- dnorm(z, yg, tg, log=T)
   
