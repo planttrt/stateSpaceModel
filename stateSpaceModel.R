@@ -2,8 +2,23 @@ library('truncnorm')
 source('~/Projects/procVisData/bayesianFunctions.R')
 library(rjags)
 
+setBlockHeadTail <- function(xyData){
+  if(!'Block'%in%colnames(xyData)) stop('Block data were not found!')
+  xyData.tmp <- xyData
+  
+  xyData[,HeadTail:=as.factor(c('Head', rep('Body',.N-2),'Tail')), Block]
+  xyData[,Head:=HeadTail=='Head']
+  xyData[,Tail:=HeadTail=='Tail']
+  
+  xyData.tmp
+}
+
 setConnectBackFore <- function(xyData){
   xyData.tmp <- xyData
+
+    if(any(!c('Head','Tail')%in%colnames(X))) 
+      xyData.tmp <- setBlockHeadTail(xyData.tmp)
+    
   xyData.tmp[,ConnectBack:=0:(.N-1)]
   xyData.tmp[,ConnectFore:=2:(.N+1)]
   
