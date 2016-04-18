@@ -1,5 +1,6 @@
 source('~/Projects/procVisData/auxFunctions.R')
 stateSpaceTemporalPost <- function(x, y, beta,
+                                   yLim=NULL, 
                                    sigma=0,
                                    plotFlag =T,
                                    nTrends=10,
@@ -34,7 +35,8 @@ stateSpaceTemporalPost <- function(x, y, beta,
   if(plotFlag)
   {
     t <- 1:n
-    plot(t, y, ylim= range(yPred, na.rm = T))
+    if(is.null(yLim)) yLim <- range(yPred, na.rm = T)
+    plot(t, y, ylim= yLim)
     for(trend in 1:nTrends) lines(t, yPred[,trend], col='#88888888')
     lines(t, y, type = 'l')
     points(t, y)

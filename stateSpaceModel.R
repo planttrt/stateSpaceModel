@@ -254,7 +254,7 @@ stateSpaceJags <- function(x, z, connect=NULL,
                            nGibbs = 1000, nPost=nGibbs,
                            TRUNC =F,
                            n.chains=4, n.adapt=100,
-                           quiet=F
+                           quiet=F, calcLatentGibbs=F
                            
 ){
   if(!is.null(connect)){
@@ -300,8 +300,12 @@ stateSpaceJags <- function(x, z, connect=NULL,
   ssGibbs.jags <- data.frame(beta=t(apply(ssSamples$beta, c(1,2), mean)),
                              sigma=t(apply(ssSamples$sigma, c(1,2), mean)),
                              tau=t(apply(ssSamples$sigma2, c(1,2), mean)))
+  latentGibbs <- NULL
+  if(calcLatentGibbs) latentGibbs <- t(apply(ssSamples$y, c(1,2), mean))
   
-  return(list(model=ssModel, chains=ssGibbs.jags, rawsamples = ssSamples))
+  return(list(model=ssModel, chains=ssGibbs.jags, 
+              latentGibbs = latentGibbs, 
+              rawsamples = ssSamples))
 }
 
 
