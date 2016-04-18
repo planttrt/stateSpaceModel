@@ -169,6 +169,9 @@ stateSpace <- function(x, z, connect=NULL, HeadTail=NULL,
   if(storeLatent) yg.var <- apply(ygibbs[-(1:burnin),], 2, var)
   if(storeLatent) tmp <- list(bgibbs=bgibbs, sgibbs=vgibbs[,1], tgibbs=vgibbs[,2], nBurnin=burnin, mpSteps=MPStepsgibbs, acceptGibbs = accept, zPredGibbs=zPredGibbs, latentMean =yg.mean, latentStd =yg.var, latentGibbs=ygibbs)
   if(!storeLatent) tmp <- list(bgibbs=bgibbs, sgibbs=vgibbs[,1], tgibbs=vgibbs[,2], nBurnin=burnin, mpSteps=MPStepsgibbs, acceptGibbs = accept, zPredGibbs=zPredGibbs, latentMean =yg.mean)
+  tmp$chains <- data.frame(beta=tmp$bgibbs,
+                          sigma=tmp$sgibbs,
+                          tau=tmp$tgibbs)
   
   tmp
 }
