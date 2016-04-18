@@ -8,18 +8,18 @@ model
   tau2 <- pow(sigma2, -2)
   sigma2 ~ dunif(0, 100)
 
-  for (i in connectFore) 
+  for (i in connectHead) 
   {
     y[i] ~ dnorm(0, tau)
   }
 
-  for (i in connectBoth) 
+  for (i in connectBody) 
   {
     dy[i] ~ dnorm(x[i-1,]%*%beta , tau)T(0,10000000)
     y[i] <- y[i-1] + dy[i]
   }
   
-  for (i in connectBack) 
+  for (i in connectTail) 
   {
     dy[i] ~ dnorm(x[i-1,]%*%beta , tau)T(0,10000000)
     y[i] <- y[i-1] + dy[i]

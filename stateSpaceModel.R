@@ -21,12 +21,24 @@ pLatentStates.SS <- function(x, z, yg, bg, sg, tg, connect, wNA, TRUNC){
 }
 
 
-stateSpace <- function(x, z, connect,
+stateSpace <- function(x, z, connect=NULL, HeadTail=NULL,
                        ng = 1000, burnin = floor(0.5 * ng), 
                        MPstep = .01, nAccept =50, 
                        priorB = rep(0, ncol(x)), priorIVB = diag(1/1000, ncol(x)),
                        tauPriorStrength=NULL, tauPriorMean=NULL, storeLatent=F,
                        sigPriorStrength=NULL, sigPriorMean=NULL, TRUNC =F){
+  if(!is.null(connect)){
+    Head <- which(is.na(connect[,1]))
+    Tail <- which(is.na(connect[,2]))
+    Body <- which(!rowSums(is.na(connect)))
+  }else if(!is.null(HeadTail)){
+    Head <- which(HeadTail[,1])
+    Tail <- which(HeadTail[,2])
+    Body <- which(!(HeadTail[,1]|HeadTail[,2]))
+  }else
+  {
+    stop('One of connect or HeadTail arguments should be defined.')
+  }
   
   if(any(is.na(x))) stop('Matrix x is not allowed to contain NAs!')
   
@@ -223,7 +235,7 @@ ssSimulations <- function(nSites=1000, nTSet=c(3:6), p=2, beta =NULL,
 }
 
 stateSpaceJags <- function(x, z, connect=NULL,
-                           ForeBack =NULL,
+                           HeadTail =NULL,
                            nGibbs = 1000, nPost=nGibbs,
                            TRUNC =F,
                            n.chains=4, n.adapt=100,
@@ -231,16 +243,16 @@ stateSpaceJags <- function(x, z, connect=NULL,
                            
 ){
   if(!is.null(connect)){
-    Fore <- which(is.na(connect[,1]))
-    Back <- which(is.na(connect[,2]))
-    Both <- which(!rowSums(is.na(connect)))
-  }else if(!is.null(ForeBack)){
-    Fore <- which(ForeBack[,1])
-    Back <- which(ForeBack[,2])
-    Both <- which(!(ForeBack[,1]|ForeBack[,2]))
+    Head <- which(is.na(connect[,1]))
+    Tail <- which(is.na(connect[,2]))
+    Body <- which(!rowSums(is.na(connect)))
+  }else if(!is.null(HeadTail)){
+    Head <- which(HeadTail[,1])
+    Tail <- which(HeadTail[,2])
+    Body <- which(!(HeadTail[,1]|HeadTail[,2]))
   }else
   {
-    stop('One of connect or ForeBack arguments should be defined.')
+    stop('One of connect or HeadTail arguments should be defined.')
   }
   
   model <- ifelse(TRUNC, 
@@ -255,9 +267,9 @@ stateSpaceJags <- function(x, z, connect=NULL,
                                     'z' = z,
                                     'N' = nrow(x),
                                     'p'= ncol(x),
-                                    connectFore=Fore,
-                                    connectBoth=Both,
-                                    connectBack=Back),
+                                    connectHead=Head,
+                                    connectBody=Body,
+                                    connectTail=Tail),
                         n.chains = n.chains,
                         n.adapt = n.adapt)
   

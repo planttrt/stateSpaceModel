@@ -29,16 +29,16 @@ stateSpaceTemporalPost <- function(x, y, beta,
     dy <- c(y[1], dy[-n])
     
     yPred[,trend] <- pieceWiseCumSum(dy, startPoints)
-    yPred[startPoints,trend] <- y[startPoints]
+    if(!is.null(startPoints))yPred[startPoints,trend] <- y[startPoints]
   }
   if(plotFlag)
   {
     t <- 1:n
-    plot(t, y, ylim= range(yPred))
+    plot(t, y, ylim= range(yPred, na.rm = T))
     for(trend in 1:nTrends) lines(t, yPred[,trend], col='#88888888')
     lines(t, y, type = 'l')
     points(t, y)
-    points(startPoints, y[startPoints], col='chocolate1', pch =19)
+    if(!is.null(startPoints))points(startPoints, y[startPoints], col='chocolate1', pch =19)
   }
   
   invisible(yPred)
