@@ -4,7 +4,8 @@ stateSpaceTemporalPost <- function(x, y, beta,
                                    sigma=0,
                                    plotFlag =T,
                                    nTrends=10,
-                                   startPoints=NULL){
+                                   startPoints=NULL,
+                                   connectDots=F){
   # x: predictor matrix (nXp), 
   #   n is number of observations
   #   p is number of predictors
@@ -38,7 +39,7 @@ stateSpaceTemporalPost <- function(x, y, beta,
     if(is.null(yLim)) yLim <- range(yPred, na.rm = T)
     plot(t, y, ylim= yLim)
     for(trend in 1:nTrends) lines(t, yPred[,trend], col='#88888888')
-    lines(t, y, type = 'l')
+    if(connectDots)lines(t, y, type = 'l')
     points(t, y)
     if(!is.null(startPoints))points(startPoints, y[startPoints], col='chocolate1', pch =19)
   }
