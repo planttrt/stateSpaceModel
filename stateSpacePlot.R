@@ -7,7 +7,8 @@ stateSpaceTemporalPost <- function(x, y, beta, t=1:length(y),
                                    startPoints=NULL,
                                    connectDots=F,
                                    xlab=xlab, ylab=ylab,
-                                   col=c('black','#88888888','chocolate1')){
+                                   pch=1,
+                                   col=c('black','grey','chocolate1')){
   # x: predictor matrix (nXp), 
   #   n is number of observations
   #   p is number of predictors
@@ -42,11 +43,11 @@ stateSpaceTemporalPost <- function(x, y, beta, t=1:length(y),
   {
     #t <- 1:n
     if(is.null(yLim)) yLim <- range(yPred, na.rm = T)
-    plot(t, y, ylim= yLim, xlim=xLim, xlab=xlab, ylab=ylab)
-    for(trend in 1:nTrends) lines(t, yPred[,trend], col='#88888888')
-    if(connectDots)lines(t, y, type = 'l')
-    points(t, y)
-    if(!is.null(startPoints))points(startPoints, y[startPoints], col='chocolate1', pch =19)
+    plot(t, y, ylim= yLim, xlim=xLim, xlab=xlab, ylab=ylab, col=col[1], pch=pch)
+    for(trend in 1:nTrends) lines(t, yPred[,trend], col=col[2])
+    if(connectDots)lines(t, y, type = 'l', col=col[2])
+    points(t, y, col=col[1], pch=pch)
+    if(!is.null(startPoints))points(startPoints, y[startPoints], col=col[3], pch =19)
   }
   
   invisible(yPred)
