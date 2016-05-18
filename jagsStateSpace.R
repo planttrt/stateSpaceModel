@@ -9,12 +9,12 @@ par(mfrow=c(2,2))
 set.seed(27708)
 ssSim <- ssSimulations(nSites = 1, #number of sites
                        nTSet = 50, #number of Time steps
-                       beta = c(1., -.7), #beta coefficients
+                       beta = c(.1, -.07), #beta coefficients
                        sig = .1, # process error
                        tau = .01, # observation error
                        plotFlag = T, # whether plot the data or not
-                       miss = .75, #fraction of missing data
-                       TRUNC = F # trunctaed model or not
+                       miss = .1, #fraction of missing data
+                       TRUNC = T # trunctaed model or not
 )
 
 ssJAGS <- stateSpaceJags(x = ssSim$x, z = ssSim$z, connect = ssSim$connect, 

@@ -1,11 +1,13 @@
 source('~/Projects/procVisData/auxFunctions.R')
-stateSpaceTemporalPost <- function(x, y, beta,
-                                   yLim=NULL, 
+stateSpaceTemporalPost <- function(x, y, beta, t=1:length(y),
+                                   xLim=NULL, yLim=NULL, 
                                    sigma=0,
                                    plotFlag =T,
                                    nTrends=10,
                                    startPoints=NULL,
-                                   connectDots=F){
+                                   connectDots=F,
+                                   xlab=xlab, ylab=ylab,
+                                   col=c('black','#88888888','chocolate1')){
   # x: predictor matrix (nXp), 
   #   n is number of observations
   #   p is number of predictors
@@ -18,6 +20,9 @@ stateSpaceTemporalPost <- function(x, y, beta,
   # y(t) = y(t-1) + x(t-1)*beta + process.error 
   #  process.error ~ N(0, sigma)
   #  observation.error ~ N(0, tau)
+  wCon <- rep(0, length(y))
+  wCon[startPoints] <- 1
+  wCon <- cumsum(wCon)
   
   n <- length(y)
   p <- ncol(x)
@@ -35,9 +40,9 @@ stateSpaceTemporalPost <- function(x, y, beta,
   }
   if(plotFlag)
   {
-    t <- 1:n
+    #t <- 1:n
     if(is.null(yLim)) yLim <- range(yPred, na.rm = T)
-    plot(t, y, ylim= yLim)
+    plot(t, y, ylim= yLim, xlim=xLim, xlab=xlab, ylab=ylab)
     for(trend in 1:nTrends) lines(t, yPred[,trend], col='#88888888')
     if(connectDots)lines(t, y, type = 'l')
     points(t, y)

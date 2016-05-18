@@ -54,7 +54,9 @@ stateSpace <- function(x, z, connect=NULL, HeadTail=NULL,
                        priorB = rep(0, ncol(x)), priorIVB = diag(1/1000, ncol(x)),
                        tauPriorStrength=NULL, tauPriorMean=NULL, storeLatent=F,
                        sigPriorStrength=NULL, sigPriorMean=NULL, TRUNC =F){
-  if(!is.null(connect)){
+  
+  
+    if(!is.null(connect)){
     Head <- which(is.na(connect[,1]))
     Tail <- which(is.na(connect[,2]))
     Body <- which(!rowSums(is.na(connect)))
@@ -62,6 +64,9 @@ stateSpace <- function(x, z, connect=NULL, HeadTail=NULL,
     Head <- which(HeadTail[,1])
     Tail <- which(HeadTail[,2])
     Body <- which(!(HeadTail[,1]|HeadTail[,2]))
+    connect <- cbind(0:(nrow(HeadTail)-1), 2:(nrow(HeadTail)+1) )
+    connect[HeadTail[,1],1] <- NA
+    connect[HeadTail[,2],2] <- NA
   }else
   {
     stop('One of connect or HeadTail arguments should be defined.')
