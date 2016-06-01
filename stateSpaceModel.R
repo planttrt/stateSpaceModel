@@ -192,6 +192,15 @@ stateSpace <- function(x, z, connect=NULL, HeadTail=NULL,
   tmp$chains <- data.frame(beta=tmp$bgibbs,
                            sigma=tmp$sgibbs,
                            tau=tmp$tgibbs)
+  
+  tmp$betaMu <- colMeans(bgibbs[-(1:burnin),])
+  tmp$tauMu <- mean(tmp$sgibbs[-(1:burnin)])
+  tmp$sigmaMu <- mean(tmp$tgibbs[-(1:burnin)])
+  
+  tmp$betaSd <- apply(bgibbs[-(1:burnin),], 2, sd)
+  tmp$tauSd <- sd(tmp$sgibbs[-(1:burnin)])
+  tmp$sigmaSd <- sd(tmp$tgibbs[-(1:burnin)])
+  
   tmp$data <- list(x=x, z=z, connect=connect, HeadTail= HeadTail)
   
   tmp
