@@ -15,10 +15,10 @@ setBlockHeadTail <- function(xyData){
 
 setConnectBackFore <- function(xyData){
   xyData.tmp <- xyData
-
-    if(any(!c('Head','Tail')%in%colnames(X))) 
-      xyData.tmp <- setBlockHeadTail(xyData.tmp)
-    
+  
+  if(any(!c('Head','Tail')%in%colnames(X))) 
+    xyData.tmp <- setBlockHeadTail(xyData.tmp)
+  
   xyData.tmp[,ConnectBack:=0:(.N-1)]
   xyData.tmp[,ConnectFore:=2:(.N+1)]
   
@@ -56,7 +56,7 @@ stateSpace <- function(x, z, connect=NULL, HeadTail=NULL,
                        sigPriorStrength=NULL, sigPriorMean=NULL, TRUNC =F){
   
   
-    if(!is.null(connect)){
+  if(!is.null(connect)){
     Head <- which(is.na(connect[,1]))
     Tail <- which(is.na(connect[,2]))
     Body <- which(!rowSums(is.na(connect)))
@@ -190,8 +190,9 @@ stateSpace <- function(x, z, connect=NULL, HeadTail=NULL,
   if(storeLatent) tmp <- list(bgibbs=bgibbs, sgibbs=vgibbs[,1], tgibbs=vgibbs[,2], nBurnin=burnin, mpSteps=MPStepsgibbs, acceptGibbs = accept, zPredGibbs=zPredGibbs, latentMean =yg.mean, latentStd =yg.var, latentGibbs=ygibbs)
   if(!storeLatent) tmp <- list(bgibbs=bgibbs, sgibbs=vgibbs[,1], tgibbs=vgibbs[,2], nBurnin=burnin, mpSteps=MPStepsgibbs, acceptGibbs = accept, zPredGibbs=zPredGibbs, latentMean =yg.mean)
   tmp$chains <- data.frame(beta=tmp$bgibbs,
-                          sigma=tmp$sgibbs,
-                          tau=tmp$tgibbs)
+                           sigma=tmp$sgibbs,
+                           tau=tmp$tgibbs)
+  tmp$data <- list(x=x, z=z, connect=connect, HeadTail= HeadTail)
   
   tmp
 }
