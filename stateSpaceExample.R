@@ -2,16 +2,19 @@
 
 source('stateSpaceModel.R')
 source('stateSpacePlot.R')
-source('~/Projects/procVisData/gibbsSamplingPlot.R')
+source('~/Projects/procVisData/dataViz.R')
+source('~/Projects/procVisData/bayesianFunctions.R')
+par(mfrow=c(3,2))
 
+set.seed(2016)
 
-ssSim <- ssSimulations(nSites = 3, #number of sites
-                       nTSet = 20, #number of Time steps
-                       beta = c(1., -.6), #beta coefficients
+ssSim <- ssSimulations(nSites = 4, #number of sites
+                       nTSet = 10, #number of Time steps
+                       beta = c(1., -.3, -.4, .2), #beta coefficients
                        sig = .2, # process error
                        tau = .01, # observation error
                        plotFlag = T, # whether plot the data or not
-                       miss = .2, #fraction of missing data
+                       miss = .3, #fraction of missing data
                        TRUNC = F # trunctaed model or not
 )
 
@@ -34,22 +37,26 @@ ssOut <- stateSpace(x = ssSim$x, #predictors
 # plot(rowMeans(ssOut$mpSteps), type = 'l')
 # plot(rowMeans(ssOut$acceptGibbs), type = 'l')
 
-par(mfrow=c(3,1))
 
 ssGibbs <- data.frame(beta=ssOut$bgibbs,
                       sigma=ssOut$sgibbs,
                       tau=ssOut$tgibbs)
 
-plotGibbs(outGibbs =  ssGibbs, burnin = ssOut$nBurnin, 
+plotGibbsDensity(outGibbs =  ssGibbs, burnin = ssOut$nBurnin, 
           trueValues = c(ssSim$beta, ssSim$sig, ssSim$tau),
-          yRange = c(0,15),
-          plots = 'post')
+          yRange = c(0,15))
+
+plotGibbsChains(outGibbs =  ssGibbs, burnin = ssOut$nBurnin, 
+                 trueValues = c(ssSim$beta, ssSim$sig, ssSim$tau))
+
+plotGibbsBoxplots(outGibbs =  ssGibbs, burnin = ssOut$nBurnin, sort = F)
 
 stateSpaceTemporalPost(ssSim$x, ssSim$y, 
                        beta = ssOut$bgibbs,
                        sigma = ssOut$sgibbs, 
                        startPoints = ssSim$startPoints, 
                        nTrends = 100)
+
 points(ssSim$wNA, ssSim$y[ssSim$wNA], col='blue')
 
 stateSpacePlot(y=ssSim$y, 

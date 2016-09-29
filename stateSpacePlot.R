@@ -6,7 +6,7 @@ stateSpaceTemporalPost <- function(x, y, beta, t=1:length(y),
                                    nTrends=10,
                                    startPoints=NULL,
                                    connectDots=F,
-                                   xlab=xlab, ylab=ylab,
+                                   xlab='', ylab='',
                                    pch=1,
                                    col=c('black','grey','chocolate1')){
   # x: predictor matrix (nXp), 
