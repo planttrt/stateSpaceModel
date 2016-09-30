@@ -6,24 +6,24 @@ source('~/Projects/procVisData/dataViz.R')
 source('~/Projects/procVisData/bayesianFunctions.R')
 par(mfrow=c(3,2))
 
-set.seed(2016)
+# set.seed(2016)
 
-ssSim <- ssSimulations(nSites = 4, #number of sites
-                       nTSet = 10, #number of Time steps
-                       beta = c(1., -.3, -.4, .2), #beta coefficients
-                       sig = .2, # process error
-                       tau = .01, # observation error
+ssSim <- ssSimulations(nSites = 100, #number of sites
+                       nTSet = 20, #number of Time steps
+                       beta = c(.7, -.3, .1, -.1, -.4, .2), #beta coefficients
+                       sig = .05, # process error
+                       tau = .2, # observation error
                        plotFlag = T, # whether plot the data or not
-                       miss = .3, #fraction of missing data
+                       miss = .9, #fraction of missing data
                        TRUNC = F # trunctaed model or not
 )
 
 ssOut <- stateSpace(x = ssSim$x, #predictors
                     z = ssSim$z,#response
-                    tauPriorMean = ssSim$tau, 
-                    tauPriorStrength = 1, 
-                    sigPriorMean = NULL,
-                    sigPriorStrength = NULL,
+                    tauPriorMean = NULL, 
+                    tauPriorStrength = NULL, 
+                    sigPriorMean = ssSim$sig,
+                    sigPriorStrength = 1,
                     connect = ssSim$connect, # connectivity of time data
                     ng = 2000, #number of gibbs sampling
                     burnin = 1000, #numbe of burning
@@ -41,6 +41,7 @@ ssOut <- stateSpace(x = ssSim$x, #predictors
 ssGibbs <- data.frame(beta=ssOut$bgibbs,
                       sigma=ssOut$sgibbs,
                       tau=ssOut$tgibbs)
+#ssGibbs <- ssGibbs[-(1:ssOut$nBurnin),]
 
 plotGibbsDensity(outGibbs =  ssGibbs, burnin = ssOut$nBurnin, 
           trueValues = c(ssSim$beta, ssSim$sig, ssSim$tau),
@@ -49,7 +50,7 @@ plotGibbsDensity(outGibbs =  ssGibbs, burnin = ssOut$nBurnin,
 plotGibbsChains(outGibbs =  ssGibbs, burnin = ssOut$nBurnin, 
                  trueValues = c(ssSim$beta, ssSim$sig, ssSim$tau))
 
-plotGibbsBoxplots(outGibbs =  ssGibbs, burnin = ssOut$nBurnin, sort = F)
+plotGibbsBoxplots(outGibbs =  ssGibbs, burnin = ssOut$nBurnin, sort = F, textAdj = 0, trueValues = c(ssSim$beta, ssSim$sig, ssSim$tau), vert = F)
 
 stateSpaceTemporalPost(ssSim$x, ssSim$y, 
                        beta = ssOut$bgibbs,
