@@ -274,6 +274,7 @@ ssSimulations <- function(nSites=1000, nTSet=c(3:6), p=2, beta =NULL,
   }
   
   list(x=x, z=z, y= y, connect=connect, 
+       miss =miss,
        tau = tau, sig=sig, beta=beta, 
        startPoints = which(is.na(connect[,1])), 
        n=nSamples.Site, wNA = wNA, TRUNC=TRUNC)
