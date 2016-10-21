@@ -50,9 +50,13 @@ stateSpaceTemporalPost <- function(x, y, beta, t=1:length(y),
       for(i in 1:nrow(pieces)){
         st <- pieces[i,1]
         en <- pieces[i,2]
-        lines(st:en, yPred[st:en, trend], col=col[2])
+        lines(t[st:en], yPred[st:en, trend], col=col[2])
       }
     }
+    yPredQuant <- t(apply(yPred, MARGIN = 1, FUN = quantile, probs=c(.25,.50,.75)))
+    lines(t[st:en], yPredQuant[st:en,1], lwd=1.5, lty=2)
+    lines(t[st:en], yPredQuant[st:en,2], lwd=1.5, lty=1)
+    lines(t[st:en], yPredQuant[st:en,3], lwd=1.5, lty=2)
     if(connectDots)lines(t, y, type = 'l', col=col[2])
     points(t, y, col=col[1], pch=pch)
     #if(!is.null(startPoints))points(startPoints, y[startPoints], col=col[3], pch =19)
