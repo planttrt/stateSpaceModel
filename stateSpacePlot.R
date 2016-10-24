@@ -53,7 +53,7 @@ stateSpaceTemporalPost <- function(x, y, beta, t=1:length(y),
         lines(t[st:en], yPred[st:en, trend], col=col[2])
       }
     }
-    yPredQuant <- t(apply(yPred, MARGIN = 1, FUN = quantile, probs=c(.25,.50,.75)))
+    yPredQuant <- t(apply(yPred, MARGIN = 1, FUN = quantile, probs=c(.025,.50,.975)))
     lines(t[st:en], yPredQuant[st:en,1], lwd=1.5, lty=2)
     lines(t[st:en], yPredQuant[st:en,2], lwd=1.5, lty=1)
     lines(t[st:en], yPredQuant[st:en,3], lwd=1.5, lty=2)
