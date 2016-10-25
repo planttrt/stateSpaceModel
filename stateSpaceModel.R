@@ -340,3 +340,143 @@ stateSpaceJags <- function(x, z, connect=NULL,
 }
 
 
+
+stateSpaceJags.Max <- function(x, z, connect=NULL,
+                               HeadTail =NULL,
+                               nGibbs = 1000, nPost=nGibbs,
+                               TRUNC =F,
+                               n.chains=4, n.adapt=100,
+                               quiet=F, calcLatentGibbs=F
+                               
+){
+  if(!is.null(connect)){
+    Head <- which(is.na(connect[,1]))
+    Tail <- which(is.na(connect[,2]))
+    Body <- which(!rowSums(is.na(connect)))
+  }else if(!is.null(HeadTail)){
+    Head <- which(HeadTail[,1])
+    Tail <- which(HeadTail[,2])
+    Body <- which(!(HeadTail[,1]|HeadTail[,2]))
+  }else
+  {
+    stop('One of connect or HeadTail arguments should be defined.')
+  }
+  
+  model <- ifelse(TRUNC, 
+                  '~/Projects/stateSpaceModel/modelSS.trunc.bugs',
+                  '~/Projects/stateSpaceModel/modelSS.bugs')
+  model <-  '~/Projects/stateSpaceModel/modelSS.max.bugs'
+  # model <- ifelse(TRUNC, modelSS.trunc.bugs,modelSS.bugs)
+  
+  ssModel <- jags.model(model, 
+                        quiet = quiet, 
+                        data = list('x' = x,
+                                    'z' = z,
+                                    'N' = nrow(x),
+                                    'p'= ncol(x),
+                                    'blocks'=cumsum(is.na(connect[,1])*1),
+                                    'nblocks'=sum(is.na(connect[,1])),
+                                    connectHead=Head,
+                                    connectBody=Body,
+                                    connectTail=Tail),
+                        n.chains = n.chains,
+                        n.adapt = n.adapt)
+  
+  update(ssModel, nGibbs)
+  
+  ssSamples <- jags.samples(ssModel,c('y','beta', 'sigma', 'sigma2', 'ymax'), nPost )
+  
+  
+  
+  # print(ssSamples)
+  
+  
+  ssGibbs.jags <- data.frame(beta=t(apply(ssSamples$beta, c(1,2), mean)),
+                             ymax=t(apply(ssSamples$ymax, c(1,2), mean)),
+                             sigma=t(apply(ssSamples$sigma, c(1,2), mean)),
+                             tau=t(apply(ssSamples$sigma2, c(1,2), mean))
+  )
+  latentGibbs <- NULL
+  if(calcLatentGibbs) latentGibbs <- t(apply(ssSamples$y, c(1,2), mean))
+  
+  return(list(model=ssModel, chains=ssGibbs.jags, 
+              latentGibbs = latentGibbs, 
+              rawsamples = ssSamples))
+}
+
+####
+
+ssSimulationsMax <- function(nSites=1000, nTSet=c(3:6), p=2, beta =NULL,
+                             sig= .1, tau=.01, miss=0,
+                             plotFlag = F, TRUNC = F, nonLinear=T, ymax=1){
+  
+  nSamples.Site <- sample(nTSet, nSites, replace = T)
+  
+  if(length(nTSet)==1) nSamples.Site <- sample(c(nTSet, nTSet), nSites, replace = T)
+  
+  if(length(ymax)==1) ymax <- rep(ymax, nSites)
+  
+  N <- sum(nSamples.Site)
+  
+  if(!is.null(beta)) {
+    p <- length(beta)
+  }else {
+    beta <- matrix(2*runif(p)-1)
+  }
+  
+  x <- matrix(runif(p*N), ncol=p, nrow=N)
+  
+  
+  y <- rep(0, N)
+  
+  sampleSiteNo <- c(0, cumsum(nSamples.Site))
+  for(i in 1:nSites){
+    y[sampleSiteNo[i]+1] <- runif(1, .2, .3)
+    
+    for(j in 2:nSamples.Site[i]){
+      dy <- x[sampleSiteNo[i]+j-1,]%*%beta
+      if(nonLinear) dy <- dy*(1-y[sampleSiteNo[i]+j-1]/ymax[i])
+      if(TRUNC){
+        y[sampleSiteNo[i]+j] <- y[sampleSiteNo[i]+j-1] + tnorm(1, 0,Inf, dy, sig )
+      }else{
+        y[sampleSiteNo[i]+j] <- y[sampleSiteNo[i]+j-1] + rnorm(1, dy, sig )
+      }
+    }
+  }
+  
+  z <- rnorm(N, y, tau)
+  
+  
+  
+  connect <- matrix(NA, nrow = N, ncol = 2)
+  colnames(connect) <- c('Back','Fore')
+  
+  for(i in 1:nSites){
+    connect[(sampleSiteNo[i]+1):(sampleSiteNo[i+1]-1),2] <- 
+      (sampleSiteNo[i]+2):(sampleSiteNo[i+1])
+    
+    connect[(sampleSiteNo[i]+2):(sampleSiteNo[i+1]),1] <- 
+      (sampleSiteNo[i]+1):(sampleSiteNo[i+1]-1)
+  }
+  
+  # beta <- c(-.1, 10)
+  # p <- length(beta)
+  
+  #z1 <- z.[!order[,2]]
+  #z2 <- z.[!order[,1]]
+  #   x <- x.[!order[,2],]
+  #   z <- z.
+  wNA <- sample(1:N, floor(miss*N) )
+  z[wNA] <- NA
+  if (plotFlag)
+  {
+    plot(z)
+    lines(z)
+  }
+  
+  list(x=x, z=z, y= y, connect=connect, 
+       miss =miss,
+       tau = tau, sig=sig, beta=beta, ymax=ymax,
+       startPoints = which(is.na(connect[,1])), 
+       n=nSamples.Site, wNA = wNA, TRUNC=TRUNC, nonLinear=nonLinear)
+}
