@@ -2,3 +2,5 @@
 .Rhistory
 .RData
 .Ruserdata
+stateSpaceEVIExample.R
+stateSpaceModel2.R
