@@ -341,13 +341,17 @@ stateSpaceJags <- function(x, z, connect=NULL,
 
 
 
-stateSpaceJags.Max <- function(x, z, connect=NULL,
-                               HeadTail =NULL,
-                               nGibbs = 1000, nPost=nGibbs,
-                               TRUNC =F,
-                               n.chains=4, n.adapt=100,
-                               quiet=F, calcLatentGibbs=F
-                               
+
+####
+
+
+stateSpace.Max <- function(x, z, connect=NULL,
+                           HeadTail =NULL,
+                           nGibbs = 1000, nPost=nGibbs,
+                           n.chains=4, n.adapt=100,
+                           quiet=F, calcLatentGibbs=F,
+                           phenoModel=F
+                           
 ){
   if(!is.null(connect)){
     Head <- which(is.na(connect[,1]))
@@ -362,11 +366,8 @@ stateSpaceJags.Max <- function(x, z, connect=NULL,
     stop('One of connect or HeadTail arguments should be defined.')
   }
   
-  model <- ifelse(TRUNC, 
-                  '~/Projects/stateSpaceModel/modelSS.trunc.bugs',
-                  '~/Projects/stateSpaceModel/modelSS.bugs')
   model <-  '~/Projects/stateSpaceModel/modelSS.max.bugs'
-  # model <- ifelse(TRUNC, modelSS.trunc.bugs,modelSS.bugs)
+  if(phenoModel)model <-  '~/Projects/stateSpaceModel/modelSS.max.pheno.bugs'
   
   ssModel <- jags.model(model, 
                         quiet = quiet, 
@@ -384,7 +385,7 @@ stateSpaceJags.Max <- function(x, z, connect=NULL,
   
   update(ssModel, nGibbs)
   
-  ssSamples <- jags.samples(ssModel,c('y','beta', 'sigma', 'sigma2', 'ymax'), nPost )
+  ssSamples <- jags.samples(ssModel,c('y','beta', 'sigma', 'tau', 'ymax'), nPost )
   
   
   
@@ -394,7 +395,7 @@ stateSpaceJags.Max <- function(x, z, connect=NULL,
   ssGibbs.jags <- data.frame(beta=t(apply(ssSamples$beta, c(1,2), mean)),
                              ymax=t(apply(ssSamples$ymax, c(1,2), mean)),
                              sigma=t(apply(ssSamples$sigma, c(1,2), mean)),
-                             tau=t(apply(ssSamples$sigma2, c(1,2), mean))
+                             tau=t(apply(ssSamples$tau, c(1,2), mean))
   )
   latentGibbs <- NULL
   if(calcLatentGibbs) latentGibbs <- t(apply(ssSamples$y, c(1,2), mean))
@@ -408,7 +409,7 @@ stateSpaceJags.Max <- function(x, z, connect=NULL,
 
 ssSimulationsMax <- function(nSites=1000, nTSet=c(3:6), p=2, beta =NULL,
                              sig= .1, tau=.01, miss=0,
-                             plotFlag = F, TRUNC = F, nonLinear=T, ymax=1){
+                             plotFlag = F,  ymax=1){
   
   nSamples.Site <- sample(nTSet, nSites, replace = T)
   
@@ -426,7 +427,6 @@ ssSimulationsMax <- function(nSites=1000, nTSet=c(3:6), p=2, beta =NULL,
   
   x <- matrix(runif(p*N), ncol=p, nrow=N)
   
-  
   y <- rep(0, N)
   
   sampleSiteNo <- c(0, cumsum(nSamples.Site))
@@ -434,19 +434,11 @@ ssSimulationsMax <- function(nSites=1000, nTSet=c(3:6), p=2, beta =NULL,
     y[sampleSiteNo[i]+1] <- runif(1, .2, .3)
     
     for(j in 2:nSamples.Site[i]){
-      dy <- x[sampleSiteNo[i]+j-1,]%*%beta
-      if(nonLinear) dy <- dy*(1-y[sampleSiteNo[i]+j-1]/ymax[i])
-      if(TRUNC){
-        y[sampleSiteNo[i]+j] <- y[sampleSiteNo[i]+j-1] + tnorm(1, 0,Inf, dy, sig )
-      }else{
-        y[sampleSiteNo[i]+j] <- y[sampleSiteNo[i]+j-1] + rnorm(1, dy, sig )
-      }
+      dy <- (x[sampleSiteNo[i]+j-1,]%*%beta)*(1-(y[sampleSiteNo[i]+j-1]/ymax[i]))
+      y[sampleSiteNo[i]+j] <- y[sampleSiteNo[i]+j-1] + max(0, rnorm(1, dy, sig ))
     }
   }
-  
   z <- rnorm(N, y, tau)
-  
-  
   
   connect <- matrix(NA, nrow = N, ncol = 2)
   colnames(connect) <- c('Back','Fore')
@@ -470,13 +462,23 @@ ssSimulationsMax <- function(nSites=1000, nTSet=c(3:6), p=2, beta =NULL,
   z[wNA] <- NA
   if (plotFlag)
   {
-    plot(z)
-    lines(z)
+    ssSimPlot(z, connect)
   }
   
   list(x=x, z=z, y= y, connect=connect, 
        miss =miss,
-       tau = tau, sig=sig, beta=beta, ymax=ymax,
+       tau = tau, sig=sig, beta=beta, ymax=ymax, 
        startPoints = which(is.na(connect[,1])), 
-       n=nSamples.Site, wNA = wNA, TRUNC=TRUNC, nonLinear=nonLinear)
+       n=nSamples.Site, wNA = wNA)
+}
+
+ssSimPlot <- function(z, connect, add=F, col='blue', ylim=range(z, na.rm = T), pch=1, lwd=1){
+  if(add) par(new=T)
+  plot(z, ylim=ylim, col=col, pch=pch, xlab = '', ylab = '')
+  ix <- 1:length(z)
+  ww1 <- which(is.na(connect[,1]))
+  ww2 <- which(is.na(connect[,2]))
+  for(i in 1:length(ww1))lines(ix[ww1[i]:ww2[i]], z[ww1[i]:ww2[i]], col=col, lwd=lwd)
+  abline(v=ix[ww1], col='grey')
+  
 }
