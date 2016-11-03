@@ -1,13 +1,17 @@
 source('~/Projects/procVisData/auxFunctions.R')
 stateSpaceTemporalPost <- function(x, y, beta, t=1:length(y),
                                    xLim=NULL, yLim=NULL, 
-                                   sigma=0,
+                                   nonLinear=F, 
+                                   ymax=rep(1, nrow(beta)),
+                                   sigma=rep(0, nrow(beta)),
+                                   tau=rep(0, nrow(beta)),
                                    plotFlag =T,
                                    nTrends=10,
                                    startPoints=1,
                                    connectDots=F,
                                    xlab='time steps', ylab='y',
-                                   pch=1,
+                                   pch=1, 
+                                   plotZ =F,
                                    col=c('black','grey')){
   # x: predictor matrix (nXp), 
   #   n is number of observations
@@ -21,6 +25,10 @@ stateSpaceTemporalPost <- function(x, y, beta, t=1:length(y),
   # y(t) = y(t-1) + x(t-1)*beta + process.error 
   #  process.error ~ N(0, sigma)
   #  observation.error ~ N(0, tau)
+  
+  # blocks  <- cumsum(is.na(connect[,1])*1)
+  # nblocks <- sum(is.na(connect[,1]))
+  
   wCon <- rep(0, length(y))
   wCon[startPoints] <- 1
   wCon <- cumsum(wCon)
@@ -32,14 +40,29 @@ stateSpaceTemporalPost <- function(x, y, beta, t=1:length(y),
   yPred <- matrix(NA, length(y), nTrends)
   for(trend in 1:nTrends){
     beta.Sample <- as.numeric(beta[sample(1:nrow(beta),1 ),])
+    ymax.Sample <- as.numeric(ymax[sample(1:nrow(ymax),1 ),])
     sigma.Sample <- as.numeric(sigma[sample(1:length(sigma),1 )])
+    tau.Sample <- as.numeric(tau[sample(1:length(tau),1 )])
     
-    dy <- rnorm(mean = x%*%beta.Sample, sd = sigma.Sample, n)
-    dy <- c(y[1], dy[-n])
-    
-    yPred[,trend] <- pieceWiseCumSum(dy, startPoints)
+    if(nonLinear) {
+      yPred[,trend] <- y*NA
+      yPred[startPoints, trend] <- y[startPoints]
+      yPred[1,trend] <- y[1]
+      for(i in 2:n){
+        dy <- max(0, rnorm(mean = (x%*%beta.Sample)*(1 - yPred[i-1,trend]/ymax.Sample[wCon[i]]), 
+                           sd = sigma.Sample, 1))
+        yPred[i,trend] <- yPred[i-1,trend] + dy
+        yPred[startPoints, trend] <- y[startPoints]
+      }
+      zPred <- yPred + rnorm(0, sd = tau.Sample, n = length(yPred))
+    }else{
+      dy <- rnorm(mean = x%*%beta.Sample, sd = sigma.Sample, n)
+      dy <- c(y[1], dy[-n])
+      yPred[,trend] <- pieceWiseCumSum(dy, startPoints)
+    }
     if(!is.null(startPoints))yPred[startPoints,trend] <- y[startPoints]
   }
+  if(plotZ) yPred <- zPred
   if(plotFlag)
   {
     #t <- 1:n
@@ -54,9 +77,13 @@ stateSpaceTemporalPost <- function(x, y, beta, t=1:length(y),
       }
     }
     yPredQuant <- t(apply(yPred, MARGIN = 1, FUN = quantile, probs=c(.025,.50,.975)))
-    lines(t[st:en], yPredQuant[st:en,1], lwd=1.5, lty=2)
-    lines(t[st:en], yPredQuant[st:en,2], lwd=1.5, lty=1)
-    lines(t[st:en], yPredQuant[st:en,3], lwd=1.5, lty=2)
+    for(i in 1:nrow(pieces)){
+      st <- pieces[i,1]
+      en <- pieces[i,2]
+      lines(t[st:en], yPredQuant[st:en,1], lwd=1.5, lty=2)
+      lines(t[st:en], yPredQuant[st:en,2], lwd=1.5, lty=1)
+      lines(t[st:en], yPredQuant[st:en,3], lwd=1.5, lty=2)
+    }
     if(connectDots)lines(t, y, type = 'l', col=col[2])
     points(t, y, col=col[1], pch=pch)
     #if(!is.null(startPoints))points(startPoints, y[startPoints], col=col[3], pch =19)
