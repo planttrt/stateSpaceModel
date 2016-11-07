@@ -400,10 +400,21 @@ stateSpace.Max <- function(x, z, connect=NULL,
   latentGibbs <- NULL
   if(calcLatentGibbs) latentGibbs <- t(apply(ssSamples$y, c(1,2), mean))
   
-  return(list(model=ssModel, chains=ssGibbs.jags, 
-              nBurnin= nBurnin, nGibbs=nGibbs,
+  return(list(model=ssModel, 
+              chains=ssGibbs.jags, 
+              nBurnin= nBurnin, 
+              nGibbs=nGibbs,
               latentGibbs = latentGibbs, 
-              rawsamples = ssSamples))
+              rawsamples = ssSamples,
+              data =list(x = x, 
+                         z = z, 
+                         connect = connect,
+                         HeadTail = HeadTail,
+                         nBurnin = nBurnin, 
+                         nGibbs = nGibbs,
+                         n.chains=n.chains, 
+                         n.adapt = n.adapt,
+                         phenoModel = phenoModel)))
 }
 
 ####
