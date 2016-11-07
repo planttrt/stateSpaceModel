@@ -347,7 +347,7 @@ stateSpaceJags <- function(x, z, connect=NULL,
 
 stateSpace.Max <- function(x, z, connect=NULL,
                            HeadTail =NULL,
-                           nGibbs = 1000, nPost=nGibbs,
+                           nBurnin = 1, nGibbs=1000,
                            n.chains=4, n.adapt=100,
                            quiet=F, calcLatentGibbs=F,
                            phenoModel=F
@@ -383,9 +383,9 @@ stateSpace.Max <- function(x, z, connect=NULL,
                         n.chains = n.chains,
                         n.adapt = n.adapt)
   
-  update(ssModel, nGibbs)
+  update(ssModel, nBurnin)
   
-  ssSamples <- jags.samples(ssModel,c('y','beta', 'sigma', 'tau', 'ymax'), nPost )
+  ssSamples <- jags.samples(ssModel,c('y','beta', 'sigma', 'tau', 'ymax'), nGibbs )
   
   
   
@@ -401,6 +401,7 @@ stateSpace.Max <- function(x, z, connect=NULL,
   if(calcLatentGibbs) latentGibbs <- t(apply(ssSamples$y, c(1,2), mean))
   
   return(list(model=ssModel, chains=ssGibbs.jags, 
+              nBurnin= nBurnin, nGibbs=nGibbs,
               latentGibbs = latentGibbs, 
               rawsamples = ssSamples))
 }
