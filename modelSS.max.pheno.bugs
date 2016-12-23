@@ -16,7 +16,7 @@ model
   for (i in connectBody) 
   {
     dy[i] ~ dnorm(x[i-1,]%*%beta*(1-y[i-1]/ymax[blocks[i-1]]), sigma2)
-    y[i] <- y[i-1] + dy[i]
+    y[i] <- y[i-1] + max(0, dy[i])
   }
   
   for (i in connectTail) 

@@ -1,4 +1,5 @@
 source('~/Projects/procVisData/auxFunctions.R')
+
 stateSpaceTemporalPost <- function(x, y, beta, t=1:length(y),
                                    xLim=NULL, yLim=NULL, 
                                    nonLinear=F, 
@@ -11,8 +12,11 @@ stateSpaceTemporalPost <- function(x, y, beta, t=1:length(y),
                                    connectDots=F,
                                    xlab='time steps', ylab='y',
                                    pch=1, 
+                                   percentile=.95,
                                    plotZ =F,
-                                   col=c('black','grey')){
+                                   lwd=c(2,1.5),
+                                   col=c('black','grey', 'black', 'grey'),
+                                   pheno=F){
   # x: predictor matrix (nXp), 
   #   n is number of observations
   #   p is number of predictors
@@ -65,6 +69,11 @@ stateSpaceTemporalPost <- function(x, y, beta, t=1:length(y),
   if(plotZ) yPred <- zPred
   if(plotFlag)
   {
+    if(pheno){
+      lmc <- lm(EVI~EVI01, data = forestsSiteData[Site=='NDUK'])$coefficients
+      yPred <- lmc[1] + yPred*lmc[2]
+      y <- lmc[1] + y*lmc[2]
+    }
     #t <- 1:n
     if(is.null(yLim)) yLim <- range(yPred, na.rm = T)
     plot(t, y, ylim= yLim, xlim=xLim, xlab=xlab, ylab=ylab, col=col[1], pch=pch)
@@ -76,15 +85,15 @@ stateSpaceTemporalPost <- function(x, y, beta, t=1:length(y),
         lines(t[st:en], yPred[st:en, trend], col=col[2])
       }
     }
-    yPredQuant <- t(apply(yPred, MARGIN = 1, FUN = quantile, probs=c(.025,.50,.975)))
+    yPredQuant <- t(apply(yPred, MARGIN = 1, FUN = quantile, probs=c(0.5-percentile/2, .50, 0.5+percentile/2)))
     for(i in 1:nrow(pieces)){
       st <- pieces[i,1]
       en <- pieces[i,2]
-      lines(t[st:en], yPredQuant[st:en,1], lwd=1.5, lty=2)
-      lines(t[st:en], yPredQuant[st:en,2], lwd=1.5, lty=1)
-      lines(t[st:en], yPredQuant[st:en,3], lwd=1.5, lty=2)
+      lines(t[st:en], yPredQuant[st:en,1], lwd=lwd[2], lty=2, col=col[3])
+      lines(t[st:en], yPredQuant[st:en,2], lwd=lwd[1], lty=1, col=col[3])
+      lines(t[st:en], yPredQuant[st:en,3], lwd=lwd[2], lty=2, col=col[3])
     }
-    if(connectDots)lines(t, y, type = 'l', col=col[2])
+    if(connectDots)lines(t, y, type = 'l', col=col[4])
     points(t, y, col=col[1], pch=pch)
     #if(!is.null(startPoints))points(startPoints, y[startPoints], col=col[3], pch =19)
   }

@@ -399,7 +399,8 @@ stateSpace.Max <- function(x, z, connect=NULL,
   )
   latentGibbs <- NULL
   if(calcLatentGibbs) latentGibbs <- t(apply(ssSamples$y, c(1,2), mean))
-  
+  ww <- grep(pattern = 'beta', colnames(ssOut$chains))
+  if(!is.null(colnames(x))) colnames(ssGibbs.jags)[ww] <- colnames(x)
   return(list(model=ssModel, 
               chains=ssGibbs.jags, 
               nBurnin= nBurnin, 
@@ -493,4 +494,35 @@ ssSimPlot <- function(z, connect, add=F, col='blue', ylim=range(z, na.rm = T), p
   for(i in 1:length(ww1))lines(ix[ww1[i]:ww2[i]], z[ww1[i]:ww2[i]], col=col, lwd=lwd)
   abline(v=ix[ww1], col='grey')
   
+}
+
+getGibbsSummaryMaxModel <- function(ssOut, burnin = NULL , colNames){
+  p <- ncol(ssOut$data$x)
+  colnames(ssOut$chains)[1:p] <- colNames
+  ng <- nrow(ssOut$chains)
+  if(is.null(burnin)) burnin <- floor(ng/2)
+  burnt <- (1:burnin)
+  n <- ncol(ssOut$chains)
+  
+  ssGibbs.betas <- ssOut$chains[-burnt,1:p]
+  ssGibbs.ymax <- ssOut$chains[-burnt,(p+1):(n-2)]
+  ssGibbs.errors <- ssOut$chains[-burnt,(n-1):n]
+  # ymaxChains <- as.matrix(ssOut$rawsamples$ymax)
+  
+  list(betas = ssGibbs.betas,
+       errors = ssGibbs.errors,
+       ymax = ssGibbs.ymax)
+}
+
+getChainSummary <- function(ssChains, nBurnin=NULL){
+  if(!is.null(nBurnin)) ssChains <- ssChains[-(1:nBurnin),]
+  chainsQuant <- t(apply(ssChains, 2, quantile, probs=c(.5,.025,.975)))
+  colnames(chainsQuant) <- c('Median','Low.95','Hi.95')
+  
+  chainsMu <- apply(ssChains, 2, mean)
+  chainsStd <- apply(ssChains, 2, sd)
+  
+  chainsSummary <- data.frame(Mean=chainsMu, chainsQuant, Std =chainsStd)
+  print(signif(chainsSummary,2))
+  invisible(chainsSummary)
 }
