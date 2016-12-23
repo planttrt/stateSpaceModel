@@ -398,7 +398,7 @@ stateSpace.Max <- function(x, z, connect=NULL,
   )
   latentGibbs <- NULL
   if(calcLatentGibbs) latentGibbs <- t(apply(ssSamples$y, c(1,2), mean))
-  ww <- grep(pattern = 'beta', colnames(ssOut$chains))
+  ww <- grep(pattern = 'beta', colnames(ssGibbs.jags))
   if(!is.null(colnames(x))) colnames(ssGibbs.jags)[ww] <- colnames(x)
   return(list(model=ssModel, 
               chains=ssGibbs.jags, 
