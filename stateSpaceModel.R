@@ -384,9 +384,8 @@ stateSpace.Max <- function(x, z, connect=NULL,
                         n.adapt = n.adapt)
   
   update(ssModel, nBurnin)
-  
-  ssSamples <- jags.samples(ssModel,c('y','beta', 'sigma', 'tau', 'ymax'), nGibbs )
-  
+  if(!phenoModel)  ssSamples <- jags.samples(ssModel,c('y','beta', 'sigma', 'tau', 'ymax'), nGibbs )
+  if(phenoModel)  ssSamples <- jags.samples(ssModel,c('y','beta', 'sigma', 'tau', 'ymax'), nGibbs )
   
   
   # print(ssSamples)
